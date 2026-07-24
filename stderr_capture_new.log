@@ -1,0 +1,37 @@
+C:\Users\santh\Music\flet-mobile-app\main.py:281: DeprecationWarning: app() is deprecated since version 0.80.0. Use run() instead.
+  ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+2026-07-24 12:24:12,887 - flet - INFO - Assets path configured: C:\Users\santh\Music\flet-mobile-app\assets
+2026-07-24 12:24:13,561 - flet - INFO - Starting Flet web server on port 55240...
+2026-07-24 12:24:13,562 - flet_web.fastapi - INFO - Web renderer configured: WebRenderer.AUTO
+2026-07-24 12:24:13,562 - flet_web.fastapi - INFO - Route URL strategy configured: RouteUrlStrategy.PATH
+2026-07-24 12:24:13,562 - flet_web.fastapi - INFO - No CDN configured: False
+2026-07-24 12:24:13,563 - flet - INFO - Flet app has started...
+INFO:     Started server process [24804]
+INFO:     Waiting for application startup.
+2026-07-24 12:24:13,601 - flet_web.fastapi - INFO - Starting up Flet App Manager
+2026-07-24 12:24:13,601 - flet - INFO - App URL: http://127.0.0.1:55240
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:55240 (Press CTRL+C to quit)
+2026-07-24 12:24:13,882 - flet_web.fastapi - INFO - Temp dir created for patched index and manifest: C:\Users\santh\AppData\Local\Temp\tmpoxlg3z04
+2026-07-24 12:24:13,882 - flet_web.fastapi - INFO - Web root: c:\Users\santh\Music\flet-mobile-app\flet_env\lib\site-packages\flet_web\web
+2026-07-24 12:24:13,882 - flet_web.fastapi - INFO - Assets dir: C:\Users\santh\Music\flet-mobile-app\assets
+2026-07-24 12:24:15,047 - flet_web.fastapi - INFO - New FletApp: yIND1ddf
+INFO:     127.0.0.1:50312 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-07-24 12:24:15,089 - flet_web.fastapi - INFO - New session created (1 total): _lSyh5Y193IXeU29l_b6e637091cd9b52cce2ffdf4d56746ea45126955
+2026-07-24 12:24:15,093 - flet_web.fastapi - INFO - Start session: lSyh5Y193IXeU29l
+2026-07-24 12:24:15,211 - __main__ - INFO - Page configured with dark theme
+2026-07-24 12:24:15,211 - core.audio_manager - WARNING - ft.Audio not available in this Flet version - using stub mode
+2026-07-24 12:24:15,211 - core.audio_manager - INFO - AudioManager initialized in stub mode (audio playback disabled)
+2026-07-24 12:24:15,211 - __main__ - INFO - AudioManager initialized
+2026-07-24 12:24:15,344 - __main__ - INFO - PlayerBar initialized
+2026-07-24 12:24:15,344 - __main__ - INFO - LibraryView initialized
+2026-07-24 12:24:15,344 - flet_web.fastapi - ERROR - Unhandled error processing page session: lSyh5Y193IXeU29l
+Traceback (most recent call last):
+  File "c:\Users\santh\Music\flet-mobile-app\flet_env\lib\site-packages\flet_web\fastapi\flet_app.py", line 172, in __on_session_created
+    self.__main(self.__session.page)
+  File "C:\Users\santh\Music\flet-mobile-app\main.py", line 100, in main
+    def on_folder_selected(e: ft.FilePickerResultEvent) -> None:
+  File "c:\Users\santh\Music\flet-mobile-app\flet_env\lib\site-packages\flet\__init__.py", line 1801, in __getattr__
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+AttributeError: module 'flet' has no attribute 'FilePickerResultEvent'. Did you mean: 'FilePickerUploadEvent'?

@@ -1,0 +1,37 @@
+C:\Users\santh\Music\flet-mobile-app\main.py:281: DeprecationWarning: app() is deprecated since version 0.80.0. Use run() instead.
+  ft.app(target=main, view=ft.AppView.WEB_BROWSER)
+2026-07-24 12:22:49,668 - flet - INFO - Assets path configured: C:\Users\santh\Music\flet-mobile-app\assets
+2026-07-24 12:22:50,301 - flet - INFO - Starting Flet web server on port 57897...
+2026-07-24 12:22:50,304 - flet_web.fastapi - INFO - Web renderer configured: WebRenderer.AUTO
+2026-07-24 12:22:50,305 - flet_web.fastapi - INFO - Route URL strategy configured: RouteUrlStrategy.PATH
+2026-07-24 12:22:50,307 - flet_web.fastapi - INFO - No CDN configured: False
+2026-07-24 12:22:50,308 - flet - INFO - Flet app has started...
+INFO:     Started server process [86404]
+INFO:     Waiting for application startup.
+2026-07-24 12:22:50,361 - flet_web.fastapi - INFO - Starting up Flet App Manager
+2026-07-24 12:22:50,361 - flet - INFO - App URL: http://127.0.0.1:57897
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:57897 (Press CTRL+C to quit)
+2026-07-24 12:22:50,602 - flet_web.fastapi - INFO - Temp dir created for patched index and manifest: C:\Users\santh\AppData\Local\Temp\tmppugjw5h7
+2026-07-24 12:22:50,604 - flet_web.fastapi - INFO - Web root: C:\Users\santh\Music\flet-mobile-app\flet_env\lib\site-packages\flet_web\web
+2026-07-24 12:22:50,604 - flet_web.fastapi - INFO - Assets dir: C:\Users\santh\Music\flet-mobile-app\assets
+2026-07-24 12:22:51,441 - flet_web.fastapi - INFO - New FletApp: nVetCPGq
+INFO:     127.0.0.1:53328 - "WebSocket /ws" [accepted]
+INFO:     connection open
+2026-07-24 12:22:51,451 - flet_web.fastapi - INFO - New session created (1 total): _EFtwSw9cANpdtPqg_b6e637091cd9b52cce2ffdf4d56746ea45126955
+2026-07-24 12:22:51,455 - flet_web.fastapi - INFO - Start session: EFtwSw9cANpdtPqg
+2026-07-24 12:22:51,481 - __main__ - INFO - Page configured with dark theme
+2026-07-24 12:22:51,485 - core.audio_manager - WARNING - ft.Audio not available in this Flet version - using stub mode
+2026-07-24 12:22:51,487 - core.audio_manager - INFO - AudioManager initialized in stub mode (audio playback disabled)
+2026-07-24 12:22:51,522 - __main__ - INFO - AudioManager initialized
+2026-07-24 12:22:51,569 - flet_web.fastapi - ERROR - Unhandled error processing page session: EFtwSw9cANpdtPqg
+Traceback (most recent call last):
+  File "C:\Users\santh\Music\flet-mobile-app\flet_env\lib\site-packages\flet_web\fastapi\flet_app.py", line 172, in __on_session_created
+    self.__main(self.__session.page)
+  File "C:\Users\santh\Music\flet-mobile-app\main.py", line 84, in main
+    player_bar = PlayerBar(
+  File "C:\Users\santh\Music\flet-mobile-app\ui\player_bar.py", line 58, in __init__
+    self.content = self._build_content()
+  File "C:\Users\santh\Music\flet-mobile-app\ui\player_bar.py", line 67, in _build_content
+    main_column = ft.Column(
+TypeError: Column.__init__() got an unexpected keyword argument 'padding'

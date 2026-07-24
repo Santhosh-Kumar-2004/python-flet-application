@@ -1,3 +1,4 @@
 venv
 .venv
 flet_env
+__pycache__
