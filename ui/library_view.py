@@ -50,16 +50,46 @@ class LibraryView(ft.Container):
         """
         self.tiles = []
         
-        list_view = ft.ListView(
-            expand=True,
-            spacing=10,
-            padding=12
-        )
-        
-        for idx, song in enumerate(self.songs):
-            tile = self._create_song_tile(song, idx)
-            self.tiles.append(tile)
-            list_view.controls.append(tile)
+        # Check if there are songs
+        if not self.songs:
+            empty_state = ft.Container(
+                content=ft.Column(
+                    controls=[
+                        ft.Icon("music_note", size=64, color="#1db954"),
+                        ft.Text(
+                            "No Songs Yet",
+                            size=20,
+                            weight="w900",
+                            color="#ffffff"
+                        ),
+                        ft.Text(
+                            "Click the upload button to add music files",
+                            size=14,
+                            color="#b0b0b0"
+                        )
+                    ],
+                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=12
+                ),
+                alignment=ft.Alignment.CENTER,
+                expand=True
+            )
+            
+            list_view = ft.ListView(
+                expand=True,
+                controls=[empty_state]
+            )
+        else:
+            list_view = ft.ListView(
+                expand=True,
+                spacing=8,
+                padding=12
+            )
+            
+            for idx, song in enumerate(self.songs):
+                tile = self._create_song_tile(song, idx)
+                self.tiles.append(tile)
+                list_view.controls.append(tile)
         
         return list_view
     
@@ -78,14 +108,15 @@ class LibraryView(ft.Container):
         artist = song.get("artist", "Unknown Artist")
         duration = song.get("duration", "0:00")
         
-        # Album art placeholder with better styling
+        # Album art placeholder with gradient background
         album_art = ft.Container(
-            content=ft.Icon("album", size=36, color="#1db954"),
-            width=70,
-            height=70,
+            content=ft.Icon("album", size=32, color="#1db954"),
+            width=60,
+            height=60,
             bgcolor="#1a1a1a",
-            border_radius=12,
-            alignment=ft.Alignment.CENTER
+            border_radius=10,
+            alignment=ft.Alignment.CENTER,
+            shadow=ft.BoxShadow(blur_radius=4, color="#1db95420")
         )
         
         # Song info column
@@ -93,49 +124,50 @@ class LibraryView(ft.Container):
             controls=[
                 ft.Text(
                     title,
-                    size=15,
-                    weight="600",
+                    size=14,
+                    weight="w600",
                     color="#ffffff",
                     overflow=ft.TextOverflow.ELLIPSIS,
                     max_lines=1
                 ),
                 ft.Text(
                     artist,
-                    size=13,
+                    size=12,
                     color="#b0b0b0",
                     overflow=ft.TextOverflow.ELLIPSIS,
                     max_lines=1
                 )
             ],
-            spacing=4,
+            spacing=3,
             expand=True,
             tight=True
         )
         
         # Duration badge
         duration_badge = ft.Container(
-            content=ft.Text(duration, size=12, color="#1db954", weight="500"),
-            padding=ft.padding.symmetric(horizontal=10, vertical=6),
-            bgcolor="#1a1a1a",
-            border_radius=8
+            content=ft.Text(duration, size=11, color="#1db954", weight="600"),
+            padding=8,
+            bgcolor="#1db95420",
+            border_radius=6
         )
         
         # Main content row
         content_row = ft.Row(
             controls=[album_art, song_info, duration_badge],
-            spacing=14,
+            spacing=12,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
             expand=True
         )
         
-        # Create tile container
+        # Create tile container with better styling
         tile = ft.Container(
             content=content_row,
             bgcolor="#1a1a1a",
-            border_radius=14,
+            border_radius=12,
             padding=12,
             on_hover=lambda e: self._handle_hover(e, tile, index),
-            on_click=lambda _: self._handle_click(song, index, tile)
+            on_click=lambda _: self._handle_click(song, index, tile),
+            shadow=ft.BoxShadow(blur_radius=2, color="#00000020")
         )
         
         return tile

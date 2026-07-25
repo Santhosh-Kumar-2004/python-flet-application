@@ -1,16 +1,15 @@
 """
 Audio Manager Module for Music Player Application
 
-This module provides audio playback functionality using Flet's ft.Audio control.
+This module provides audio playback functionality using pygame mixer.
 Handles loading, playing, pausing, seeking, and state management of audio files.
-
-Note: Since ft.Audio may not be available in all Flet versions, this module
-provides a stub implementation that prevents crashes.
 """
 
 import logging
 from typing import Callable, Optional
-import flet as ft
+import pygame
+import threading
+import time
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -18,52 +17,79 @@ logger = logging.getLogger(__name__)
 
 class AudioManager:
     """
-    Manages audio playback for the music player.
+    Manages audio playback for the music player using pygame mixer.
     
-    This is a stub implementation that provides the interface for audio management
-    without requiring ft.Audio (which may not be available in all Flet versions).
+    This implementation uses pygame's mixer module for robust audio playback support.
     """
     
     def __init__(
         self,
-        page: ft.Page,
+        page,
         on_position_changed: Callable[[int], None]
     ):
         """
         Initialize the AudioManager.
-        
+
         Args:
-            page (ft.Page): The Flet page object to attach the audio control to.
+            page: The Flet page object (not used but kept for compatibility).
             on_position_changed (Callable): Callback function triggered when playback position changes.
                 Receives the position in milliseconds as an argument.
         
         Raises:
-            ValueError: If page is None or invalid.
+            ValueError: If initialization fails.
         """
-        if page is None:
-            raise ValueError("page cannot be None")
-        
-        self.page = page
         self.on_position_changed = on_position_changed
         self.current_file = None
         self.is_playing = False
+        self.current_position_ms = 0
+        self.total_duration_ms = 0
         
-        # Try to initialize ft.Audio if available, otherwise use stub
-        self.audio_control = None
+        # Initialize pygame mixer
         try:
-            self.audio_control = ft.Audio(
-                autoplay=False,
-                volume=1.0,
-                playback_rate=1.0,
-                on_position_changed=self._handle_position_changed,
-                on_state_changed=self._handle_state_changed
-            )
-            # Add audio control to page overlay (hidden from UI, manages audio)
-            self.page.overlay.append(self.audio_control)
-            logger.info("AudioManager initialized with ft.Audio support")
-        except AttributeError:
-            logger.warning("ft.Audio not available in this Flet version - using stub mode")
-            logger.info("AudioManager initialized in stub mode (audio playback disabled)")
+            pygame.mixer.init()
+            logger.info("AudioManager initialized with pygame mixer")
+        except Exception as e:
+            logger.error(f"Failed to initialize pygame mixer: {e}")
+            raise ValueError(f"Failed to initialize audio system: {e}")
+        
+        # Track position update thread
+        self.position_thread = None
+        self.should_update_position = False
+    
+    def _start_position_update_thread(self) -> None:
+        """Start background thread to update playback position."""
+        if self.position_thread is not None:
+            return
+        
+        self.should_update_position = True
+        self.position_thread = threading.Thread(target=self._update_position_loop, daemon=True)
+        self.position_thread.start()
+    
+    def _stop_position_update_thread(self) -> None:
+        """Stop the position update thread."""
+        self.should_update_position = False
+        if self.position_thread is not None:
+            self.position_thread.join(timeout=1)
+            self.position_thread = None
+    
+    def _update_position_loop(self) -> None:
+        """Background thread that updates playback position."""
+        while self.should_update_position and self.is_playing:
+            try:
+                if pygame.mixer.music.get_busy():
+                    # Get position in milliseconds
+                    position_ms = int(pygame.mixer.music.get_pos())
+                    if position_ms >= 0:
+                        self.current_position_ms = position_ms
+                        self.on_position_changed(position_ms)
+                else:
+                    # Music finished
+                    if self.is_playing:
+                        self.is_playing = False
+                time.sleep(0.1)
+            except Exception as e:
+                logger.error(f"Error updating position: {e}")
+                break
     
     def load_and_play(self, file_path: str) -> bool:
         """
@@ -76,294 +102,27 @@ class AudioManager:
             bool: True if file was loaded and playback started successfully, False otherwise.
         """
         try:
-            if self.audio_control is None:
-                logger.warning(f"Audio not available - simulating playback for: {file_path}")
-                self.current_file = file_path
-                self.is_playing = True
-                logger.info(f"Loaded and started playback (simulated): {file_path}")
-                return True
+            # Stop any existing playback
+            if self.is_playing:
+                pygame.mixer.music.stop()
+                self._stop_position_update_thread()
             
-            # Set the audio source
-            self.audio_control.src = file_path
+            # Load the new file
+            pygame.mixer.music.load(file_path)
             self.current_file = file_path
-            self.page.update()
+            self.current_position_ms = 0
+            
+            # Extract duration using pygame
+            try:
+                sound = pygame.mixer.Sound(file_path)
+                self.total_duration_ms = int(sound.get_length() * 1000)
+            except:
+                self.total_duration_ms = 0
             
             # Start playback
-            self.audio_control.play()
+            pygame.mixer.music.play()
             self.is_playing = True
-            
-            logger.info(f"Loaded and started playback: {file_path}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to load and play audio file {file_path}: {e}")
-            self.is_playing = False
-            return False
-    
-    def toggle_play_pause(self) -> bool:
-        """
-        Toggle between play and pause states.
-        
-        If the audio is currently playing, it will be paused. If it's paused,
-        playback will resume. If no file is loaded, this method does nothing.
-        
-        Returns:
-            bool: True if currently playing after toggle, False if paused.
-        """
-        if self.current_file is None:
-            logger.warning("No audio file loaded for play/pause toggle")
-            return False
-        
-        try:
-            if self.audio_control is None:
-                # Stub mode - just toggle the flag
-                self.is_playing = not self.is_playing
-                logger.info(f"Play/Pause (simulated): {self.current_file}")
-                return self.is_playing
-            
-            if self.is_playing:
-                # Currently playing, so pause
-                self.audio_control.pause()
-                self.is_playing = False
-                logger.info(f"Paused: {self.current_file}")
-            else:
-                # Currently paused, so resume
-                self.audio_control.resume()
-                self.is_playing = True
-                logger.info(f"Resumed: {self.current_file}")
-            
-            self.page.update()
-            return self.is_playing
-            
-        except Exception as e:
-            logger.error(f"Error toggling play/pause: {e}")
-            return self.is_playing
-    
-    def play(self) -> None:
-        """
-        Start playback of the currently loaded audio file.
-        
-        If already playing, this method does nothing. If no file is loaded,
-        no action is taken.
-        """
-        if self.current_file is None:
-            logger.warning("No audio file loaded for playback")
-            return
-        
-        if self.is_playing:
-            logger.debug("Audio already playing, ignoring play request")
-            return
-        
-        try:
-            if self.audio_control is None:
-                self.is_playing = True
-                logger.info(f"Started playback (simulated): {self.current_file}")
-                return
-            
-            self.audio_control.play()
-            self.is_playing = True
-            logger.info(f"Started playback: {self.current_file}")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error starting playback: {e}")
-    
-    def pause(self) -> None:
-        """
-        Pause the currently playing audio.
-        
-        If not playing, this method does nothing.
-        """
-        if not self.is_playing:
-            logger.debug("Audio not playing, ignoring pause request")
-            return
-        
-        try:
-            if self.audio_control is None:
-                self.is_playing = False
-                logger.info(f"Paused (simulated): {self.current_file}")
-                return
-            
-            self.audio_control.pause()
-            self.is_playing = False
-            logger.info(f"Paused: {self.current_file}")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error pausing audio: {e}")
-    
-    def stop(self) -> None:
-        """
-        Stop playback and release the current audio file.
-        """
-        try:
-            if self.audio_control is None:
-                self.is_playing = False
-                self.current_file = None
-                logger.info("Audio stopped and released (simulated)")
-                return
-            
-            if self.is_playing:
-                self.audio_control.pause()
-                self.is_playing = False
-            
-            self.audio_control.src = None
-            self.current_file = None
-            logger.info("Audio stopped and released")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error stopping audio: {e}")
-    
-    def seek(self, position_milliseconds: int) -> None:
-        """
-        Seek to a specific position in the audio file.
-        
-        Args:
-            position_milliseconds (int): The position to seek to, in milliseconds.
-        
-        Raises:
-            ValueError: If position_milliseconds is negative.
-        """
-        if position_milliseconds < 0:
-            raise ValueError("Position cannot be negative")
-        
-        if self.current_file is None:
-            logger.warning("No audio file loaded, cannot seek")
-            return
-        
-        try:
-            if self.audio_control is None:
-                logger.debug(f"Seek (simulated) to {position_milliseconds}ms")
-                return
-            
-            self.audio_control.seek(position_milliseconds)
-            logger.debug(f"Seeked to {position_milliseconds}ms in {self.current_file}")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error seeking to position {position_milliseconds}ms: {e}")
-    
-    def set_volume(self, volume: float) -> None:
-        """
-        Set the playback volume.
-        
-        Args:
-            volume (float): Volume level from 0.0 (mute) to 1.0 (maximum).
-        
-        Raises:
-            ValueError: If volume is not between 0.0 and 1.0.
-        """
-        if not (0.0 <= volume <= 1.0):
-            raise ValueError("Volume must be between 0.0 and 1.0")
-        
-        try:
-            if self.audio_control is None:
-                logger.debug(f"Volume set (simulated) to {volume}")
-                return
-            
-            self.audio_control.volume = volume
-            logger.debug(f"Volume set to {volume}")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error setting volume: {e}")
-    
-    def get_current_position(self) -> int:
-        """
-        Get the current playback position.
-        
-        Returns:
-            int: The current position in milliseconds, or 0 if no file is loaded.
-        """
-        if self.current_file is None:
-            return 0
-        
-        try:
-            if self.audio_control is None:
-                return 0
-            
-            # Note: In some Flet versions, this might be in a different format
-            # Adjust based on actual Flet behavior
-            position = getattr(self.audio_control, 'current_position', 0)
-            return int(position) if position else 0
-        except Exception as e:
-            logger.error(f"Error getting current position: {e}")
-            return 0
-    
-    def _handle_position_changed(self, e: ft.ControlEvent) -> None:
-        """
-        Internal handler for position changed events from the audio control.
-        
-        Args:
-            e (ft.ControlEvent): The control event containing position data.
-        """
-        try:
-            position = int(e.data) if e.data else 0
-            logger.debug(f"Position changed to {position}ms")
-            self.on_position_changed(position)
-        except Exception as ex:
-            logger.error(f"Error in position changed handler: {ex}")
-    
-    def _handle_state_changed(self, e: ft.ControlEvent) -> None:
-        """
-        Internal handler for state changed events from the audio control.
-        
-        Handles state transitions such as when a song finishes playing.
-        
-        Args:
-            e (ft.ControlEvent): The control event containing state data.
-        """
-        try:
-            state = str(e.data).lower() if e.data else ""
-            logger.info(f"Audio state changed to: {state}")
-            
-            # Handle state transitions
-            if state == "completed":
-                self.is_playing = False
-                logger.info(f"Playback completed: {self.current_file}")
-                # The main app should handle auto-play next track
-            elif state == "playing":
-                self.is_playing = True
-                logger.debug("Playback started")
-            elif state == "paused":
-                self.is_playing = False
-                logger.debug("Playback paused")
-            
-        except Exception as ex:
-            logger.error(f"Error in state changed handler: {ex}")
-    
-    def cleanup(self) -> None:
-        """
-        Clean up audio resources and remove the audio control from the page overlay.
-        
-        Should be called when shutting down the application or destroying the AudioManager.
-        """
-        try:
-            self.stop()
-            if self.audio_control and self.audio_control in self.page.overlay:
-                self.page.overlay.remove(self.audio_control)
-            logger.info("AudioManager cleaned up successfully")
-        except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
-    
-    def load_and_play(self, file_path: str) -> bool:
-        """
-        Load an audio file and automatically start playback.
-        
-        Args:
-            file_path (str): The absolute path to the audio file to load and play.
-        
-        Returns:
-            bool: True if file was loaded and playback started successfully, False otherwise.
-        
-        Raises:
-            FileNotFoundError: If the file path does not exist.
-        """
-        try:
-            # Set the audio source
-            self.audio_control.src = file_path
-            self.current_file = file_path
-            self.page.update()
-            
-            # Start playback
-            self.audio_control.play()
-            self.is_playing = True
+            self._start_position_update_thread()
             
             logger.info(f"Loaded and started playback: {file_path}")
             return True
@@ -390,16 +149,17 @@ class AudioManager:
         try:
             if self.is_playing:
                 # Currently playing, so pause
-                self.audio_control.pause()
+                pygame.mixer.music.pause()
                 self.is_playing = False
+                self._stop_position_update_thread()
                 logger.info(f"Paused: {self.current_file}")
             else:
                 # Currently paused, so resume
-                self.audio_control.resume()
+                pygame.mixer.music.unpause()
                 self.is_playing = True
+                self._start_position_update_thread()
                 logger.info(f"Resumed: {self.current_file}")
             
-            self.page.update()
             return self.is_playing
             
         except Exception as e:
@@ -422,10 +182,10 @@ class AudioManager:
             return
         
         try:
-            self.audio_control.play()
+            pygame.mixer.music.play()
             self.is_playing = True
+            self._start_position_update_thread()
             logger.info(f"Started playback: {self.current_file}")
-            self.page.update()
         except Exception as e:
             logger.error(f"Error starting playback: {e}")
     
@@ -440,10 +200,10 @@ class AudioManager:
             return
         
         try:
-            self.audio_control.pause()
+            pygame.mixer.music.pause()
             self.is_playing = False
+            self._stop_position_update_thread()
             logger.info(f"Paused: {self.current_file}")
-            self.page.update()
         except Exception as e:
             logger.error(f"Error pausing audio: {e}")
     
@@ -453,131 +213,49 @@ class AudioManager:
         """
         try:
             if self.is_playing:
-                self.audio_control.pause()
+                pygame.mixer.music.stop()
                 self.is_playing = False
-            
-            self.audio_control.src = None
+                self._stop_position_update_thread()
             self.current_file = None
-            logger.info("Audio stopped and released")
-            self.page.update()
+            self.current_position_ms = 0
+            logger.info("Stopped playback")
         except Exception as e:
             logger.error(f"Error stopping audio: {e}")
     
-    def seek(self, position_milliseconds: int) -> None:
+    def seek(self, position_ms: int) -> None:
         """
         Seek to a specific position in the audio file.
         
         Args:
-            position_milliseconds (int): The position to seek to, in milliseconds.
-        
-        Raises:
-            ValueError: If position_milliseconds is negative.
+            position_ms (int): Position in milliseconds.
         """
-        if position_milliseconds < 0:
-            raise ValueError("Position cannot be negative")
-        
-        if self.current_file is None:
-            logger.warning("No audio file loaded, cannot seek")
-            return
-        
         try:
-            self.audio_control.seek(position_milliseconds)
-            logger.debug(f"Seeked to {position_milliseconds}ms in {self.current_file}")
-            self.page.update()
+            if self.current_file is None:
+                logger.warning("No audio file loaded for seeking")
+                return
+            
+            # Pygame mixer's set_pos is limited
+            position_seconds = position_ms / 1000.0
+            pygame.mixer.music.set_pos(position_seconds)
+            self.current_position_ms = position_ms
+            logger.info(f"Seeked to {position_ms}ms")
         except Exception as e:
-            logger.error(f"Error seeking to position {position_milliseconds}ms: {e}")
+            logger.error(f"Error seeking: {e}")
     
-    def set_volume(self, volume: float) -> None:
+    def get_duration(self) -> int:
         """
-        Set the playback volume.
-        
-        Args:
-            volume (float): Volume level from 0.0 (mute) to 1.0 (maximum).
-        
-        Raises:
-            ValueError: If volume is not between 0.0 and 1.0.
-        """
-        if not (0.0 <= volume <= 1.0):
-            raise ValueError("Volume must be between 0.0 and 1.0")
-        
-        try:
-            self.audio_control.volume = volume
-            logger.debug(f"Volume set to {volume}")
-            self.page.update()
-        except Exception as e:
-            logger.error(f"Error setting volume: {e}")
-    
-    def get_current_position(self) -> int:
-        """
-        Get the current playback position.
+        Get the total duration of the current audio file in milliseconds.
         
         Returns:
-            int: The current position in milliseconds, or 0 if no file is loaded.
+            int: Duration in milliseconds, or 0 if no file is loaded.
         """
-        if self.current_file is None:
-            return 0
-        
-        try:
-            # Note: In some Flet versions, this might be in a different format
-            # Adjust based on actual Flet behavior
-            position = getattr(self.audio_control, 'current_position', 0)
-            return int(position) if position else 0
-        except Exception as e:
-            logger.error(f"Error getting current position: {e}")
-            return 0
+        return self.total_duration_ms
     
-    def _handle_position_changed(self, e: ft.ControlEvent) -> None:
+    def get_position(self) -> int:
         """
-        Internal handler for position changed events from the audio control.
+        Get the current playback position in milliseconds.
         
-        Args:
-            e (ft.ControlEvent): The control event containing position data.
+        Returns:
+            int: Current position in milliseconds.
         """
-        try:
-            position = int(e.data) if e.data else 0
-            logger.debug(f"Position changed to {position}ms")
-            self.on_position_changed(position)
-        except Exception as ex:
-            logger.error(f"Error in position changed handler: {ex}")
-    
-    def _handle_state_changed(self, e: ft.ControlEvent) -> None:
-        """
-        Internal handler for state changed events from the audio control.
-        
-        Handles state transitions such as when a song finishes playing.
-        
-        Args:
-            e (ft.ControlEvent): The control event containing state data.
-        """
-        try:
-            state = str(e.data).lower() if e.data else ""
-            logger.info(f"Audio state changed to: {state}")
-            
-            # Handle state transitions
-            if state == "completed":
-                self.is_playing = False
-                logger.info(f"Playback completed: {self.current_file}")
-                # The main app should handle auto-play next track
-            elif state == "playing":
-                self.is_playing = True
-                logger.debug("Playback started")
-            elif state == "paused":
-                self.is_playing = False
-                logger.debug("Playback paused")
-            
-        except Exception as ex:
-            logger.error(f"Error in state changed handler: {ex}")
-    
-    def cleanup(self) -> None:
-        """
-        Clean up audio resources and remove the audio control from the page overlay.
-        
-        Should be called when shutting down the application or destroying the AudioManager.
-        """
-        try:
-            self.stop()
-            if self.audio_control in self.page.overlay:
-                self.page.overlay.remove(self.audio_control)
-            logger.info("AudioManager cleaned up successfully")
-        except Exception as e:
-            logger.error(f"Error during cleanup: {e}")
+        return self.current_position_ms
